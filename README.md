@@ -1,30 +1,32 @@
-# 📦 Media Automation Stack (Docker + WSL + VPN-Safe)
+# Media Automation Stack (Docker + VPN Kill Switch)
 
-> **Windows 10 + WSL2 + Docker Desktop**  
-> Hardened media automation stack with VPN kill switch, monitoring, and automatic recovery.
+A production-grade, self-hosted media automation stack designed for **Windows + WSL2**, running fully containerized with **strict VPN enforcement**, health-gated startup, monitoring, and disaster recovery.
 
-This README is the **authoritative reference** for the stack: architecture, guarantees, maintenance, and troubleshooting.
-If you want to get running fast, see **QUICKSTART.md**.
+This repository focuses on **infrastructure, reliability, and correctness** — not hacks, shortcuts, or unsupported modifications.
 
 ---
 
-## 🚀 What This Is
+## Why this stack?
 
-A production-grade media automation stack featuring:
+This stack exists to solve a common set of problems with long-running media automation systems:
 
-- 🔒 Hard VPN kill switch (Gluetun + NordVPN)
-- 🔁 Automatic VPN rotation (cron + safe restarts)
-- ⛔ Health-gated startup (no leaks on boot or reconnect)
-- 📊 Monitoring with Uptime Kuma
-- 🎬 Sonarr / Radarr / Prowlarr
-- ⬇️ qBittorrent + NZBGet
-- 🧠 No DB hacks, no ignored warnings
+- Preventing **traffic leaks** when a VPN drops
+- Avoiding **double imports, file contention, and corruption**
+- Making recovery possible after **Windows reboots, Docker restarts, or VPN failures**
+- Ensuring Sonarr/Radarr — not download clients — remain the system of record
+- Providing **clear operational docs** you can follow months later
+
+Design goals:
+
+- **Single authority** (Docker, not Windows services)
+- **VPN-gated networking** (no VPN = no traffic)
+- **Observable health** (you know when things break)
+- **Repeatable recovery** (no mystery state)
+
+If you want a stack that behaves predictably and is easy to reason about, this is it.
 
 ---
-> New here? Start with 👉 [QUICKSTART.md](./QUICKSTART.md)  
-> First full install? Follow 👉 [WALKTHROUGH.md](./WALKTHROUGH.md)
 
----
 ## 📚 Documentation Index
 
 Use the links below depending on what you’re trying to do:
@@ -41,216 +43,37 @@ Use the links below depending on what you’re trying to do:
 - 🐳 **Docker configuration (single source of truth)**  
   👉 [docker-compose.yml](./docker-compose.yml)
 
-
-## 🧱 Architecture Overview
-
-```
-Windows 10
-└── Docker Desktop
-    └── WSL2 (Ubuntu 24.04)
-        └── Docker Compose
-            ├── gluetun (NordVPN, firewall, kill switch)
-            │   ├── qBittorrent (network_mode: service:gluetun)
-            │   └── NZBGet      (network_mode: service:gluetun)
-            ├── Sonarr
-            ├── Radarr
-            ├── Prowlarr
-            └── Uptime Kuma
-```
-
-### Design Guarantees
-- VPN down → downloaders are offline
-- Downloaders never start unless VPN is healthy
-- Windows reboot → stack restores automatically
-- VPN rotation → downloaders recover cleanly
+- 📝 **Project history & updates**  
+  👉 [CHANGELOG.md](./CHANGELOG.md)
 
 ---
 
-## 📁 Host Layout
+## What’s included
 
-```
-~/media-stack/
-├── docker-compose.yml
-├── .env
-├── scripts/
-│   └── rotate_vpn.sh
-└── config/
-    ├── gluetun/
-    ├── qbittorrent/
-    ├── nzbget/
-    ├── sonarr/
-    ├── radarr/
-    ├── prowlarr/
-    └── uptime-kuma/
-```
-
-Media storage (Windows):
-
-```
-F:\Media
-├── Movies
-├── TV
-├── Torrents
-│   ├── Incomplete
-│   └── Complete
-│       ├── movies-radarr
-│       └── tv-sonarr
-```
-
-Mounted inside containers as `/media`.
+- Docker + Docker Compose
+- Gluetun (VPN enforcement + kill switch)
+- Sonarr / Radarr
+- Prowlarr (with FlareSolverr)
+- qBittorrent (behind VPN)
+- NZBGet (behind VPN)
+- Uptime Kuma (monitoring)
 
 ---
 
-## 🔐 Environment Variables
+## Quick ports / URLs
 
-Create `.env`:
-
-```env
-NORDVPN_USER=your_nord_service_username
-NORDVPN_PASS=your_nord_service_password
-```
-
-⚠️ Use **NordVPN service credentials**, not your account email/password.
-
----
-
-## 🐳 Full docker-compose.yml
-
-(Identical to QUICKSTART — kept here for reference)
-
-```yaml
-<SEE QUICKSTART.md>
-```
+- Sonarr: http://localhost:8989
+- Radarr: http://localhost:7878
+- Prowlarr: http://localhost:9696
+- FlareSolverr: http://localhost:8191
+- qBittorrent: http://localhost:8080
+- NZBGet: http://localhost:6789
+- Uptime Kuma: http://localhost:3001
 
 ---
-
-## 🔁 VPN Rotation
-
-Manual:
-```bash
-rotatevpn
-```
-
-Scheduled (cron):
-```bash
-15 4 * * * ~/media-stack/scripts/rotate_vpn.sh >> ~/media-stack/config/rotate_vpn.log 2>&1
-```
-
----
-
-## 📊 Monitoring (Uptime Kuma)
-
-UI:
-```
-http://localhost:3001
-```
-
-Recommended monitors (HTTP):
-
-| Service | URL |
-|------|----|
-| Sonarr | http://host.docker.internal:8989 |
-| Radarr | http://host.docker.internal:7878 |
-| Prowlarr | http://host.docker.internal:9696 |
-| qBittorrent | http://host.docker.internal:8080 |
-| NZBGet | http://host.docker.internal:6789 |
-
-> qBittorrent / NZBGet act as VPN canaries.
-
----
-
-## 🛠 Helpful Commands
-
-```bash
-docker compose up -d
-docker compose down
-docker compose down && docker compose up -d
-docker compose restart gluetun
-docker compose ps
-docker exec -it gluetun wget -qO- https://ipinfo.io/ip && echo
-```
-
----
-
-## 🧰 Maintenance Notes
-
-- Docker Desktop must start on Windows login
-- Containers auto-restart via `restart: unless-stopped`
-- Downloaders must restart after VPN restart (handled by script)
-- Do NOT monitor Gluetun port 8000 (control port, not health)
-
----
-
-## 🧯 Troubleshooting
-
-### ❌ “Unable to connect to indexer (localhost:9696)”
-**Cause:** Sonarr/Radarr running in Docker cannot reach `localhost` of another container.  
-**Fix:** In Sonarr/Radarr → Indexer settings:
-- Set Prowlarr URL to: `http://prowlarr:9696`
-
----
-
-### ❌ “Download client places downloads in /media/... but path does not exist”
-**Cause:** Category paths didn’t exist *inside* container.  
-**Fix:**
-- Ensure `/mnt/f/Media` is mounted as `/media`
-- Ensure category subfolders exist:
-  ```bash
-  /media/Torrents/Complete/movies-radarr
-  /media/Torrents/Complete/tv-sonarr
-  ```
-
----
-
-### ❌ Indexers all unavailable
-**Cause:** Prowlarr can’t reach trackers or VPN was down.  
-**Fix:**
-- Verify Gluetun is healthy
-- Restart Prowlarr
-- Test indexers inside Prowlarr first
-
----
-
-### ❌ Gluetun restarts but downloaders stay down
-**Cause:** Network namespace resets.  
-**Fix:** Always restart downloaders *after* Gluetun:
-```bash
-docker compose restart gluetun qbittorrent nzbget
-```
-(Handled automatically by rotate script)
-
----
-
-### ❌ ipinfo.io still works when Gluetun is stopped
-**Expected behavior.**
-- That’s your **host**, not the containers.
-- Container traffic is blocked by Gluetun firewall.
-
----
-
-## ⏭️ Skippable Sections (Clean Install)
-
-If starting fresh, you can skip:
-- Sonarr/Radarr DB migration
-- qBittorrent/NZBGet config migration
-- Remote Path Mappings
-
-Just start containers and configure via UI.
-
----
-
-## ✅ Final State
-
-- True VPN kill switch
-- Automatic recovery
-- Monitoring + alerts
-- Safe reboot behavior
-
-
-See WALKTHROUGH.md for a full guided setup.
 
 ## Legal & Usage Notes
 
-This project documents the setup of a self-hosted media automation stack.
-Users are responsible for complying with all applicable laws and the terms
+This project documents the setup of a self-hosted media automation stack.  
+Users are responsible for complying with all applicable laws and the terms  
 of service of any providers they use.

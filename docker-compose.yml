@@ -10,21 +10,31 @@ services:
       - /dev/net/tun:/dev/net/tun
     environment:
       - TZ=America/New_York
+
+      # VPN provider (example: NordVPN)
       - VPN_SERVICE_PROVIDER=nordvpn
       - VPN_TYPE=openvpn
       - OPENVPN_USER=${NORDVPN_USER}
       - OPENVPN_PASSWORD=${NORDVPN_PASS}
+
+      # Server selection (replaces deprecated COUNTRY)
       - SERVER_COUNTRIES=United States
+
+      # Allow LAN + Docker networks
       - FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/16,10.0.0.0/8
+
     volumes:
       - ./config/gluetun:/gluetun
+
     ports:
-      - "8080:8080"
-      - "6789:6789"
-      - "51413:51413/tcp"
-      - "51413:51413/udp"
-      - "8000:8000"
+      - "8080:8080"        # qBittorrent Web UI
+      - "6789:6789"        # NZBGet Web UI
+      - "51413:51413/tcp"  # qBittorrent TCP
+      - "51413:51413/udp"  # qBittorrent UDP
+      - "8000:8000"        # Gluetun control server (optional)
+
     restart: unless-stopped
+
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9999/health"]
       interval: 30s
@@ -77,6 +87,16 @@ services:
       - /mnt/f/Media:/media
     ports:
       - "9696:9696"
+    restart: unless-stopped
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=info
+      - TZ=America/New_York
+    ports:
+      - "8191:8191"
     restart: unless-stopped
 
   sonarr:
