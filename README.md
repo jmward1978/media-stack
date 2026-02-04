@@ -21,6 +21,22 @@ A production-grade media automation stack featuring:
 - 🧠 No DB hacks, no ignored warnings
 
 ---
+## 📚 Documentation Index
+
+Use the links below depending on what you’re trying to do:
+
+- 🚀 **Quick setup (most people)**  
+  👉 [QUICKSTART.md](./QUICKSTART.md)
+
+- 🧭 **Full step-by-step walkthrough (recommended first run)**  
+  👉 [WALKTHROUGH.md](./WALKTHROUGH.md)
+
+- 🛠️ **Disaster recovery & rebuild from scratch**  
+  👉 [DISASTER_RECOVERY.md](./DISASTER_RECOVERY.md)
+
+- 🐳 **Docker configuration (single source of truth)**  
+  👉 [docker-compose.yml](./docker-compose.yml)
+
 
 ## 🧱 Architecture Overview
 
