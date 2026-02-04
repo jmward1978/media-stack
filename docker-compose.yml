@@ -1,0 +1,117 @@
+name: media-stack
+
+services:
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - TZ=America/New_York
+      - VPN_SERVICE_PROVIDER=nordvpn
+      - VPN_TYPE=openvpn
+      - OPENVPN_USER=${NORDVPN_USER}
+      - OPENVPN_PASSWORD=${NORDVPN_PASS}
+      - SERVER_COUNTRIES=United States
+      - FIREWALL_OUTBOUND_SUBNETS=192.168.0.0/16,10.0.0.0/8
+    volumes:
+      - ./config/gluetun:/gluetun
+    ports:
+      - "8080:8080"
+      - "6789:6789"
+      - "51413:51413/tcp"
+      - "51413:51413/udp"
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9999/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  qbittorrent:
+    image: linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    network_mode: service:gluetun
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+      - WEBUI_PORT=8080
+    volumes:
+      - ./config/qbittorrent:/config
+      - /mnt/f/Media:/media
+    restart: unless-stopped
+
+  nzbget:
+    image: linuxserver/nzbget:latest
+    container_name: nzbget
+    network_mode: service:gluetun
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - ./config/nzbget:/config
+      - /mnt/f/Media:/media
+    restart: unless-stopped
+
+  prowlarr:
+    image: linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - ./config/prowlarr:/config
+      - /mnt/f/Media:/media
+    ports:
+      - "9696:9696"
+    restart: unless-stopped
+
+  sonarr:
+    image: linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - ./config/sonarr:/config
+      - /mnt/f/Media:/media
+    ports:
+      - "8989:8989"
+    restart: unless-stopped
+
+  radarr:
+    image: linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/New_York
+    volumes:
+      - ./config/radarr:/config
+      - /mnt/f/Media:/media
+    ports:
+      - "7878:7878"
+    restart: unless-stopped
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    volumes:
+      - ./config/uptime-kuma:/app/data
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
