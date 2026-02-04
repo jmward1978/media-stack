@@ -21,6 +21,10 @@ A production-grade media automation stack featuring:
 - 🧠 No DB hacks, no ignored warnings
 
 ---
+> New here? Start with 👉 [QUICKSTART.md](./QUICKSTART.md)  
+> First full install? Follow 👉 [WALKTHROUGH.md](./WALKTHROUGH.md)
+
+---
 ## 📚 Documentation Index
 
 Use the links below depending on what you’re trying to do:
