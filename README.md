@@ -248,3 +248,9 @@ Just start containers and configure via UI.
 
 
 See WALKTHROUGH.md for a full guided setup.
+
+## Legal & Usage Notes
+
+This project documents the setup of a self-hosted media automation stack.
+Users are responsible for complying with all applicable laws and the terms
+of service of any providers they use.
